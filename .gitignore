@@ -1,33 +1,65 @@
-# Compiled object files
+# Prerequisites
+*.d
+
+# Object files
 *.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
 
 # Executables
 *.exe
 *.out
+*.app
+*.i*86
+*.x86_64
+*.hex
 
-# Compiled libraries
-*.a
-*.so
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
 
-# Build directory
-/build/
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
 
-# External directoy
-/external/
-
-# Dependency files
-*.d
-
-# Editor/IDE specific files
-.vscode/
-.idea/
-
-# Dont track sonnar files
-.scannerwork/
-
-# env variables
+# environment
 .env
+venv/
 
-# cache
-.cache/
+# build directory
+build/
 
+# vscode
+*.vscode/
+
+# Specific
+CMakeUserPresets.json
