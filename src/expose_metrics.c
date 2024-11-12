@@ -181,251 +181,267 @@ void* expose_metrics(void* arg)
     return NULL;
 }
 
-void init_metrics()
+void init_metrics(bool monitor_cpu_usage, bool monitor_memory_usage, bool monitor_disk, 
+                  bool monitor_network, bool monitor_processes_running, bool monitor_context_switches)
 {
     // Inicializamos el mutex
     if (pthread_mutex_init(&lock, NULL) != 0)
     {
         fprintf(stderr, "Error al inicializar el mutex\n");
-        return EXIT_FAILURE;
+        return;
     }
 
     // Inicializamos el registro de coleccionistas de Prometheus
     if (prom_collector_registry_default_init() != 0)
     {
         fprintf(stderr, "Error al inicializar el registro de Prometheus\n");
-        return EXIT_FAILURE;
+        return;
     }
 
-    // Creamos la métrica para el uso de CPU
-    cpu_usage_metric = prom_gauge_new("cpu_usage_percentage", "Porcentaje de uso de CPU", 0, NULL);
-    if (cpu_usage_metric == NULL)
+    // Creamos y registramos la métrica para el uso de CPU
+    if (monitor_cpu_usage)
     {
-        fprintf(stderr, "Error al crear la métrica de uso de CPU\n");
-        return EXIT_FAILURE;
+        cpu_usage_metric = prom_gauge_new("cpu_usage_percentage", "Porcentaje de uso de CPU", 0, NULL);
+        if (cpu_usage_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de uso de CPU\n");
+            return;
+        }
+        if (!prom_collector_registry_must_register_metric(cpu_usage_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de la CPU\n");
+            return;
+        }
     }
 
-    // Creamos la métrica para el uso de memoria
-    memory_usage_metric = prom_gauge_new("memory_usage_percentage", "Porcentaje de uso de memoria", 0, NULL);
-    if (memory_usage_metric == NULL)
+    // Creamos y registramos las métricas de memoria
+    if (monitor_memory_usage)
     {
-        fprintf(stderr, "Error al crear la métrica de uso de memoria\n");
-        return EXIT_FAILURE;
+        memory_usage_metric = prom_gauge_new("memory_usage_percentage", "Porcentaje de uso de memoria", 0, NULL);
+        if (memory_usage_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de uso de memoria\n");
+            return;
+        }
+
+        memory_total_metric = prom_gauge_new("memory_total", "Memoria total", 0, NULL);
+        if (memory_total_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de memoria total\n");
+            return;
+        }
+
+        memory_used_metric = prom_gauge_new("memory_used", "Memoria usada", 0, NULL);
+        if (memory_used_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de memoria usada\n");
+            return;
+        }
+
+        memory_available_metric = prom_gauge_new("memory_available", "Memoria disponible", 0, NULL);
+        if (memory_available_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de memoria disponible\n");
+            return;
+        }
+
+        if (!prom_collector_registry_must_register_metric(memory_usage_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de la memoria\n");
+            return;
+        }
+
+        if (!prom_collector_registry_must_register_metric(memory_total_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de la memoria total\n");
+            return;
+        }
+
+        if (!prom_collector_registry_must_register_metric(memory_used_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de la memoria usada\n");
+            return;
+        }
+
+        if (!prom_collector_registry_must_register_metric(memory_available_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de la memoria disponible\n");
+            return;
+        }
     }
 
-    // Creamos las métricas para la memoria total, usada y disponible
-    memory_total_metric = prom_gauge_new("memory_total", "Memoria total", 0, NULL);
-    if (memory_total_metric == NULL)
+    // Creamos y registramos las métricas para las estadísticas de disco
+    if (monitor_disk)
     {
-        fprintf(stderr, "Error al crear la métrica de memoria total\n");
-        return EXIT_FAILURE;
-    }
+        disk_reads_completed_metric = prom_gauge_new("disk_reads_completed", "Cantidad de lecturas completadas", 0, NULL);
+        if (disk_reads_completed_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de lecturas completadas\n");
+            return;
+        }
 
-    memory_used_metric = prom_gauge_new("memory_used", "Memoria usada", 0, NULL);
-    if (memory_used_metric == NULL)
-    {
-        fprintf(stderr, "Error al crear la métrica de memoria usada\n");
-        return EXIT_FAILURE;
-    }
+        disk_writes_completed_metric =
+            prom_gauge_new("disk_writes_completed", "Cantidad de escrituras completadas", 0, NULL);
+        if (disk_writes_completed_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de escrituras completadas\n");
+            return;
+        }
 
-    memory_available_metric = prom_gauge_new("memory_available", "Memoria disponible", 0, NULL);
-    if (memory_available_metric == NULL)
-    {
-        fprintf(stderr, "Error al crear la métrica de memoria disponible\n");
-        return EXIT_FAILURE;
-    }
+        disk_read_speed_metric = prom_gauge_new("disk_read_speed", "Velocidad de lectura del disco [KB/s]", 0, NULL);
+        if (disk_read_speed_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de velocidad de lectura\n");
+            return;
+        }
 
-    // Creamos las métricas para las estadísticas de disco
-    disk_reads_completed_metric = prom_gauge_new("disk_reads_completed", "Cantidad de lecturas completadas", 0, NULL);
-    if (disk_reads_completed_metric == NULL)
-    {
-        fprintf(stderr, "Error al crear la métrica de lecturas completadas\n");
-        return EXIT_FAILURE;
-    }
+        disk_write_speed_metric = prom_gauge_new("disk_write_speed", "Velocidad de escritura del disco [KB/s]", 0, NULL);
+        if (disk_write_speed_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de velocidad de escritura\n");
+            return;
+        }
 
-    disk_writes_completed_metric =
-        prom_gauge_new("disk_writes_completed", "Cantidad de escrituras completadas", 0, NULL);
-    if (disk_writes_completed_metric == NULL)
-    {
-        fprintf(stderr, "Error al crear la métrica de escrituras completadas\n");
-        return EXIT_FAILURE;
-    }
+        if (!prom_collector_registry_must_register_metric(disk_reads_completed_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de lecturas completadas\n");
+            return;
+        }
 
-    disk_read_speed_metric = prom_gauge_new("disk_read_speed", "Velocidad de lectura del disco [KB/s]", 0, NULL);
-    if (disk_read_speed_metric == NULL)
-    {
-        fprintf(stderr, "Error al crear la métrica de velocidad de lectura\n");
-        return EXIT_FAILURE;
-    }
+        if (!prom_collector_registry_must_register_metric(disk_writes_completed_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de escrituras completadas\n");
+            return;
+        }
 
-    disk_write_speed_metric = prom_gauge_new("disk_write_speed", "Velocidad de escritura del disco [KB/s]", 0, NULL);
-    if (disk_write_speed_metric == NULL)
-    {
-        fprintf(stderr, "Error al crear la métrica de velocidad de escritura\n");
-        return EXIT_FAILURE;
+        if (!prom_collector_registry_must_register_metric(disk_read_speed_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de velocidad de lectura\n");
+            return;
+        }
+
+        if (!prom_collector_registry_must_register_metric(disk_write_speed_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de velocidad de escritura\n");
+            return;
+        }
     }
 
     // Creamos las métricas para las estadísticas de red
-    net_bytes_recv_metric = prom_gauge_new("net_bytes_recv", "Bytes recibidos", 0, NULL);
-    if (net_bytes_recv_metric == NULL)
+    if (monitor_network)
     {
-        fprintf(stderr, "Error al crear la métrica de bytes recibidos\n");
-        return EXIT_FAILURE;
-    }
+        net_bytes_recv_metric = prom_gauge_new("net_bytes_recv", "Bytes recibidos", 0, NULL);
+        if (net_bytes_recv_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de bytes recibidos\n");
+            return;
+        }
 
-    net_packets_recv_metric = prom_gauge_new("net_packets_recv", "Paquetes recibidos", 0, NULL);
-    if (net_packets_recv_metric == NULL)
-    {
-        fprintf(stderr, "Error al crear la métrica de paquetes recibidos\n");
-        return EXIT_FAILURE;
-    }
+        net_packets_recv_metric = prom_gauge_new("net_packets_recv", "Paquetes recibidos", 0, NULL);
+        if (net_packets_recv_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de paquetes recibidos\n");
+            return;
+        }
 
-    net_errs_recv_metric = prom_gauge_new("net_errs_recv", "Errores de recepción", 0, NULL);
-    if (net_errs_recv_metric == NULL)
-    {
-        fprintf(stderr, "Error al crear la métrica de errores de recepción\n");
-        return EXIT_FAILURE;
-    }
+        net_errs_recv_metric = prom_gauge_new("net_errs_recv", "Errores de recepción", 0, NULL);
+        if (net_errs_recv_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de errores de recepción\n");
+            return;
+        }
 
-    net_bytes_trans_metric = prom_gauge_new("net_bytes_trans", "Bytes transmitidos", 0, NULL);
-    if (net_bytes_trans_metric == NULL)
-    {
-        fprintf(stderr, "Error al crear la métrica de bytes transmitidos\n");
-        return EXIT_FAILURE;
-    }
+        net_bytes_trans_metric = prom_gauge_new("net_bytes_trans", "Bytes transmitidos", 0, NULL);
+        if (net_bytes_trans_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de bytes transmitidos\n");
+            return;
+        }
 
-    net_packets_trans_metric = prom_gauge_new("net_packets_trans", "Paquetes transmitidos", 0, NULL);
-    if (net_packets_trans_metric == NULL)
-    {
-        fprintf(stderr, "Error al crear la métrica de paquetes transmitidos\n");
-        return EXIT_FAILURE;
-    }
+        net_packets_trans_metric = prom_gauge_new("net_packets_trans", "Paquetes transmitidos", 0, NULL);
+        if (net_packets_trans_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de paquetes transmitidos\n");
+            return;
+        }
 
-    net_errs_trans_metric = prom_gauge_new("net_errs_trans", "Errores de transmisión", 0, NULL);
-    if (net_errs_trans_metric == NULL)
-    {
-        fprintf(stderr, "Error al crear la métrica de errores de transmisión\n");
-        return EXIT_FAILURE;
-    }
+        net_errs_trans_metric = prom_gauge_new("net_errs_trans", "Errores de transmisión", 0, NULL);
+        if (net_errs_trans_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de errores de transmisión\n");
+            return;
+        }
 
-    // Creamos la métrica para la cantidad de procesos en ejecución
-    processes_running_metric = prom_gauge_new("processes_running", "Cantidad de procesos en ejecución", 0, NULL);
-    if (processes_running_metric == NULL)
-    {
-        fprintf(stderr, "Error al crear la métrica de procesos en ejecución\n");
-        return EXIT_FAILURE;
-    }
+        if (!prom_collector_registry_must_register_metric(net_bytes_recv_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de bytes recibidos\n");
+            return;
+        }
 
-    // Creamos la métrica para la cantidad de cambios de contexto
-    context_switches_metric = prom_gauge_new("context_switches", "Cantidad de cambios de contexto", 0, NULL);
-    if (context_switches_metric == NULL)
-    {
-        fprintf(stderr, "Error al crear la métrica de cambios de contexto\n");
-        return EXIT_FAILURE;
-    }
+        if (!prom_collector_registry_must_register_metric(net_packets_recv_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de paquetes recibidos\n");
+            return;
+        }
 
-    // Registramos todas las métricas en el registro por defecto
-    if (!prom_collector_registry_must_register_metric(memory_usage_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de la memoria\n");
-        return EXIT_FAILURE;
-    }
+        if (!prom_collector_registry_must_register_metric(net_errs_recv_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de errores de recepción\n");
+            return;
+        }
 
-    if (!prom_collector_registry_must_register_metric(cpu_usage_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica del CPU\n");
-        return EXIT_FAILURE;
-    }
+        if (!prom_collector_registry_must_register_metric(net_bytes_trans_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de bytes transmitidos\n");
+            return;
+        }
 
-    if (!prom_collector_registry_must_register_metric(memory_total_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de la memoria total\n");
-        return EXIT_FAILURE;
-    }
+        if (!prom_collector_registry_must_register_metric(net_packets_trans_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de paquetes transmitidos\n");
+            return;
+        }
 
-    if (!prom_collector_registry_must_register_metric(memory_used_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de la memoria usada\n");
-        return EXIT_FAILURE;
+        if (!prom_collector_registry_must_register_metric(net_errs_trans_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de errores de transmisión\n");
+            return;
+        }
     }
+    
+    // Creamos y registramos la métrica para la cantidad de procesos en ejecución
+    if (monitor_processes_running)
+    {
+        processes_running_metric = prom_gauge_new("processes_running", "Cantidad de procesos en ejecución", 0, NULL);
+        if (processes_running_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de procesos en ejecución\n");
+            return;
+        }
 
-    if (!prom_collector_registry_must_register_metric(memory_available_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de la memoria disponible\n");
-        return EXIT_FAILURE;
+        if (!prom_collector_registry_must_register_metric(processes_running_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de procesos en ejecución\n");
+            return;
+        }
     }
+    
+    // Creamos y registramos la métrica para la cantidad de cambios de contexto
+    if (monitor_context_switches)
+    {
+        context_switches_metric = prom_gauge_new("context_switches", "Cantidad de cambios de contexto", 0, NULL);
+        if (context_switches_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de cambios de contexto\n");
+            return;
+        }
 
-    if (!prom_collector_registry_must_register_metric(disk_reads_completed_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de lecturas completadas\n");
-        return EXIT_FAILURE;
-    }
-
-    if (!prom_collector_registry_must_register_metric(disk_writes_completed_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de escrituras completadas\n");
-        return EXIT_FAILURE;
-    }
-
-    if (!prom_collector_registry_must_register_metric(disk_read_speed_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de velocidad de lectura\n");
-        return EXIT_FAILURE;
-    }
-
-    if (!prom_collector_registry_must_register_metric(disk_write_speed_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de velocidad de escritura\n");
-        return EXIT_FAILURE;
-    }
-
-    if (!prom_collector_registry_must_register_metric(net_bytes_recv_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de bytes recibidos\n");
-        return EXIT_FAILURE;
-    }
-
-    if (!prom_collector_registry_must_register_metric(net_packets_recv_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de paquetes recibidos\n");
-        return EXIT_FAILURE;
-    }
-
-    if (!prom_collector_registry_must_register_metric(net_errs_recv_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de errores de recepción\n");
-        return EXIT_FAILURE;
-    }
-
-    if (!prom_collector_registry_must_register_metric(net_bytes_trans_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de bytes transmitidos\n");
-        return EXIT_FAILURE;
-    }
-
-    if (!prom_collector_registry_must_register_metric(net_packets_trans_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de paquetes transmitidos\n");
-        return EXIT_FAILURE;
-    }
-
-    if (!prom_collector_registry_must_register_metric(net_errs_trans_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de errores de transmisión\n");
-        return EXIT_FAILURE;
-    }
-
-    if (!prom_collector_registry_must_register_metric(processes_running_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de procesos en ejecución\n");
-        return EXIT_FAILURE;
-    }
-
-    if (!prom_collector_registry_must_register_metric(context_switches_metric) != 0)
-    {
-        fprintf(stderr, "Error al registrar la métrica de cambios de contexto\n");
-        return EXIT_FAILURE;
-    }
+        if (!prom_collector_registry_must_register_metric(context_switches_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de cambios de contexto\n");
+            return;
+        }
+    }    
 }
 
 void destroy_mutex()

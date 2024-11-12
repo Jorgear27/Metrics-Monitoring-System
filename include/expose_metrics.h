@@ -4,7 +4,7 @@
  */
 
 #include "metrics.h"
-
+#include <stdbool.h>
 #include <errno.h>
 #include <prom.h>
 #include <promhttp.h>
@@ -57,9 +57,17 @@ void update_context_switches_gauge();
 void* expose_metrics(void* arg);
 
 /**
- * @brief Inicializar mutex y métricas.
+ * @brief Inicializa las métricas y el mutex.
+ * 
+ * @param monitor_cpu_usage true si se debe monitorear el uso de CPU, false en caso contrario.
+ * @param monitor_memory_usage true si se debe monitorear el uso de memoria, false en caso contrario.
+ * @param monitor_disk true si se debe monitorear las estadisticas de disco, false en caso contrario.
+ * @param monitor_network true si se debe monitorear las estadisticas de red, false en caso contrario.
+ * @param monitor_processes_running true si se debe monitorear la cantidad de procesos en ejecución, false en caso contrario.
+ * @param monitor_context_switches true si se debe monitorear la cantidad de cambios de contexto, false en caso contrario.
  */
-void init_metrics();
+void init_metrics(bool monitor_cpu_usage, bool monitor_memory_usage, bool monitor_disk, 
+                  bool monitor_network, bool monitor_processes_running, bool monitor_context_switches);
 
 /**
  * @brief Destructor de mutex
