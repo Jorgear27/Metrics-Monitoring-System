@@ -24,8 +24,9 @@ cd ..
 cd ..
 
 echo "Build project"
+python3 -m venv venv
 source venv/bin/activate
-cd Metrics_Monitoring_System
+pip install conan
 mkdir build 
 conan install . --output-folder=build --build=missing
 cd build
