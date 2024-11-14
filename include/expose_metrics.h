@@ -9,15 +9,6 @@
 #include <prom.h>
 #include <promhttp.h>
 #include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h> // Para sleep
-
-/**
- * @brief Tamaño del buffer para leer archivos.
- */
-#define BUFFER_SIZE 256
 
 /**
  * @brief Actualiza la métrica de uso de CPU.

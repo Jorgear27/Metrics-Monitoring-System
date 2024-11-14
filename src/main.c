@@ -4,15 +4,8 @@
  */
 
 #include "expose_metrics.h"
-#include <stdbool.h>
-#include <pthread.h>
 #include <fcntl.h> 
-#include <unistd.h> 
-#include <stdio.h>  
 #include <cjson/cJSON.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
 
 /**
  * @brief Ruta del pipe para recibir configuraciones.
@@ -49,7 +42,9 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    char buffer[1024];
+    usleep(1000000); // 1 s, wait for the Shell to write the configuration
+
+    char buffer[BUFFER_SIZE];
     ssize_t bytes_read;
     while ((bytes_read = read(pipe_fd, buffer, sizeof(buffer) - 1)) == -1 && errno == EAGAIN) {
         // Wait until data is available

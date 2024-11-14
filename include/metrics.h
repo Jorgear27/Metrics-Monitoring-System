@@ -12,7 +12,7 @@
 /**
  * @brief Tamaño del buffer para leer archivos.
  */
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 1024
 
 /**
  * @brief Estructura para almacenar los valores de memoria.
