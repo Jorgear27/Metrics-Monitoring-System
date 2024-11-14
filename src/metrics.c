@@ -261,7 +261,7 @@ unsigned long long get_context_switches()
     if (context_switches == 0)
     {
         fprintf(stderr, "Error al leer la información de los cambios de contexto desde /proc/stat\n");
-        return -1.0;
+        return (unsigned long long)-1;
     }
 
     return context_switches;
