@@ -41,5 +41,11 @@ runs:
     - name: Build project
       shell: bash
       run: |
-        make
-        
+        python3 -m venv venv
+        source venv/bin/activate
+        pip install conan
+        conan profile detect --force
+        mkdir -p build
+        cd build
+        cmake .. -DCMAKE_TOOLCHAIN_FILE=./build/Release/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
+        make -j$(nproc)
