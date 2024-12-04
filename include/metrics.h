@@ -126,12 +126,12 @@ typedef struct
  */
 typedef struct
 {
-    double time_first_fit;
-    double fragmentation_first_fit;
-    double time_best_fit;
-    double fragmentation_best_fit;
-    double time_worst_fit;
-    double fragmentation_worst_fit;
+    double time_first_fit;          /**< Tiempo de ejecución de la política de asignación First Fit. */
+    double fragmentation_first_fit; /**< Fragmentación de la memoria de la política de asignación First Fit. */
+    double time_best_fit;           /**< Tiempo de ejecución de la política de asignación Best Fit. */
+    double fragmentation_best_fit;  /**< Fragmentación de la memoria de la política de asignación Best Fit. */
+    double time_worst_fit;          /**< Tiempo de ejecución de la política de asignación Worst Fit. */
+    double fragmentation_worst_fit; /**< Fragmentación de la memoria de la política de asignación Worst Fit. */
 } EfficiencyValues;
 
 /**

@@ -68,6 +68,8 @@ void* expose_metrics(void* arg);
  * contrario.
  * @param monitor_context_switches true si se debe monitorear la cantidad de cambios de contexto, false en caso
  * contrario.
+ * @param monitor_fragmentation true si se debe monitorear la fragmentación de memoria, false en caso contrario.
+ * @param monitor_policies true si se debe monitorear las políticas de asignación de memoria, false en caso contrario.
  */
 void init_metrics(bool monitor_cpu_usage, bool monitor_memory_usage, bool monitor_disk, bool monitor_network,
                   bool monitor_processes_running, bool monitor_context_switches, bool monitor_fragmentation,

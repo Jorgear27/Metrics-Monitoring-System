@@ -16,15 +16,15 @@
 /**
  * @brief Configuración global.
  */
-int sleep_time = 1;
-bool monitor_cpu_usage = true;
-bool monitor_memory_usage = true;
-bool monitor_disk = true;
-bool monitor_network = true;
-bool monitor_processes_running = true;
-bool monitor_context_switches = true;
-bool monitor_fragmentation = true;
-bool monitor_policies = true;
+int sleep_time = 1;                    /**< Tiempo de espera entre actualizaciones de métricas. */
+bool monitor_cpu_usage = true;         /**< Indica si se debe monitorear el uso de CPU. */
+bool monitor_memory_usage = true;      /**< Indica si se debe monitorear el uso de memoria. */
+bool monitor_disk = true;              /**< Indica si se debe monitorear el uso de disco. */
+bool monitor_network = true;           /**< Indica si se debe monitorear el uso de red. */
+bool monitor_processes_running = true; /**< Indica si se debe monitorear la cantidad de procesos en ejecución. */
+bool monitor_context_switches = true;  /**< Indica si se debe monitorear la cantidad de cambios de contexto. */
+bool monitor_fragmentation = true;     /**< Indica si se debe monitorear la fragmentación de memoria. */
+bool monitor_policies = true;          /**< Indica si se debe monitorear las políticas de asignación de memoria. */
 
 /**
  * @brief Punto de entrada del programa.
