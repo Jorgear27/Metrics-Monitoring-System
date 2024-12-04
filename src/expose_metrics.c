@@ -54,6 +54,21 @@ static prom_gauge_t* processes_running_metric;
 /** Métrica de Prometheus para los cambios de contexto */
 static prom_gauge_t* context_switches_metric;
 
+/** Métrica de Prometheus para la fragmentación de memoria */
+static prom_gauge_t* fragmentation_metric;
+
+/** Métricas para política de asignación de memoria first fit */
+static prom_gauge_t* first_fit_time;
+static prom_gauge_t* first_fit_fragmentation;
+
+/** Métricas para política de asignación de memoria best fit */
+static prom_gauge_t* best_fit_time;
+static prom_gauge_t* best_fit_fragmentation;
+
+/** Métricas para política de asignación de memoria worst fit */
+static prom_gauge_t* worst_fit_time;
+static prom_gauge_t* worst_fit_fragmentation;
+
 void update_cpu_gauge()
 {
     double usage = get_cpu_usage();
@@ -155,6 +170,41 @@ void update_context_switches_gauge()
     }
 }
 
+void update_fragmentation_gauge()
+{
+    double fragmentation = get_memory_fragmentation();
+    if (fragmentation >= 0)
+    {
+        pthread_mutex_lock(&lock);
+        prom_gauge_set(fragmentation_metric, fragmentation, NULL);
+        pthread_mutex_unlock(&lock);
+    }
+    else
+    {
+        fprintf(stderr, "Error al obtener la fragmentación de memoria\n");
+    }
+}
+
+void update_policies_gauge()
+{
+    EfficiencyValues policies = get_memory_policies();
+    if (policies.time_first_fit >= 0)
+    {
+        pthread_mutex_lock(&lock);
+        prom_gauge_set(first_fit_time, policies.time_first_fit, NULL);
+        prom_gauge_set(first_fit_fragmentation, policies.fragmentation_first_fit, NULL);
+        prom_gauge_set(best_fit_time, policies.time_best_fit, NULL);
+        prom_gauge_set(best_fit_fragmentation, policies.fragmentation_best_fit, NULL);
+        prom_gauge_set(worst_fit_time, policies.time_worst_fit, NULL);
+        prom_gauge_set(worst_fit_fragmentation, policies.fragmentation_worst_fit, NULL);
+        pthread_mutex_unlock(&lock);
+    }
+    else
+    {
+        fprintf(stderr, "Error al obtener las métricas de políticas de asignación de memoria\n");
+    }
+}
+
 void* expose_metrics(void* arg)
 {
     (void)arg; // Argumento no utilizado
@@ -181,8 +231,9 @@ void* expose_metrics(void* arg)
     return NULL;
 }
 
-void init_metrics(bool monitor_cpu_usage, bool monitor_memory_usage, bool monitor_disk, 
-                  bool monitor_network, bool monitor_processes_running, bool monitor_context_switches)
+void init_metrics(bool monitor_cpu_usage, bool monitor_memory_usage, bool monitor_disk, bool monitor_network,
+                  bool monitor_processes_running, bool monitor_context_switches, bool monitor_fragmentation,
+                  bool monitor_policies)
 {
     // Inicializamos el mutex
     if (pthread_mutex_init(&lock, NULL) != 0)
@@ -273,7 +324,8 @@ void init_metrics(bool monitor_cpu_usage, bool monitor_memory_usage, bool monito
     // Creamos y registramos las métricas para las estadísticas de disco
     if (monitor_disk)
     {
-        disk_reads_completed_metric = prom_gauge_new("disk_reads_completed", "Cantidad de lecturas completadas", 0, NULL);
+        disk_reads_completed_metric =
+            prom_gauge_new("disk_reads_completed", "Cantidad de lecturas completadas", 0, NULL);
         if (disk_reads_completed_metric == NULL)
         {
             fprintf(stderr, "Error al crear la métrica de lecturas completadas\n");
@@ -295,7 +347,8 @@ void init_metrics(bool monitor_cpu_usage, bool monitor_memory_usage, bool monito
             return;
         }
 
-        disk_write_speed_metric = prom_gauge_new("disk_write_speed", "Velocidad de escritura del disco [KB/s]", 0, NULL);
+        disk_write_speed_metric =
+            prom_gauge_new("disk_write_speed", "Velocidad de escritura del disco [KB/s]", 0, NULL);
         if (disk_write_speed_metric == NULL)
         {
             fprintf(stderr, "Error al crear la métrica de velocidad de escritura\n");
@@ -408,7 +461,7 @@ void init_metrics(bool monitor_cpu_usage, bool monitor_memory_usage, bool monito
             return;
         }
     }
-    
+
     // Creamos y registramos la métrica para la cantidad de procesos en ejecución
     if (monitor_processes_running)
     {
@@ -425,7 +478,7 @@ void init_metrics(bool monitor_cpu_usage, bool monitor_memory_usage, bool monito
             return;
         }
     }
-    
+
     // Creamos y registramos la métrica para la cantidad de cambios de contexto
     if (monitor_context_switches)
     {
@@ -441,7 +494,106 @@ void init_metrics(bool monitor_cpu_usage, bool monitor_memory_usage, bool monito
             fprintf(stderr, "Error al registrar la métrica de cambios de contexto\n");
             return;
         }
-    }    
+    }
+
+    // Creamos y registramos la métrica para la fragmentación de memoria
+    if (monitor_fragmentation)
+    {
+        fragmentation_metric = prom_gauge_new("fragmentation", "Fragmentación de memoria", 0, NULL);
+        if (fragmentation_metric == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de fragmentación de memoria\n");
+            return;
+        }
+
+        if (!prom_collector_registry_must_register_metric(fragmentation_metric) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de fragmentación de memoria\n");
+            return;
+        }
+    }
+
+    // Creamos y registramos las métricas para las políticas de asignación de memoria
+    if (monitor_policies)
+    {
+        first_fit_time = prom_gauge_new("first_fit_time", "Tiempo de ejecución de First Fit", 0, NULL);
+        if (first_fit_time == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de tiempo de First Fit\n");
+            return;
+        }
+
+        first_fit_fragmentation = prom_gauge_new("first_fit_fragmentation", "Fragmentación de First Fit", 0, NULL);
+        if (first_fit_fragmentation == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de fragmentación de First Fit\n");
+            return;
+        }
+
+        best_fit_time = prom_gauge_new("best_fit_time", "Tiempo de ejecución de Best Fit", 0, NULL);
+        if (best_fit_time == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de tiempo de Best Fit\n");
+            return;
+        }
+
+        best_fit_fragmentation = prom_gauge_new("best_fit_fragmentation", "Fragmentación de Best Fit", 0, NULL);
+        if (best_fit_fragmentation == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de fragmentación de Best Fit\n");
+            return;
+        }
+
+        worst_fit_time = prom_gauge_new("worst_fit_time", "Tiempo de ejecución de Worst Fit", 0, NULL);
+        if (worst_fit_time == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de tiempo de Worst Fit\n");
+            return;
+        }
+
+        worst_fit_fragmentation = prom_gauge_new("worst_fit_fragmentation", "Fragmentación de Worst Fit", 0, NULL);
+        if (worst_fit_fragmentation == NULL)
+        {
+            fprintf(stderr, "Error al crear la métrica de fragmentación de Worst Fit\n");
+            return;
+        }
+
+        if (!prom_collector_registry_must_register_metric(first_fit_time) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de tiempo de First Fit\n");
+            return;
+        }
+
+        if (!prom_collector_registry_must_register_metric(first_fit_fragmentation) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de fragmentación de First Fit\n");
+            return;
+        }
+
+        if (!prom_collector_registry_must_register_metric(best_fit_time) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de tiempo de Best Fit\n");
+            return;
+        }
+
+        if (!prom_collector_registry_must_register_metric(best_fit_fragmentation) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de fragmentación de Best Fit\n");
+            return;
+        }
+
+        if (!prom_collector_registry_must_register_metric(worst_fit_time) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de tiempo de Worst Fit\n");
+            return;
+        }
+
+        if (!prom_collector_registry_must_register_metric(worst_fit_fragmentation) != 0)
+        {
+            fprintf(stderr, "Error al registrar la métrica de fragmentación de Worst Fit\n");
+            return;
+        }
+    }
 }
 
 void destroy_mutex()

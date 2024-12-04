@@ -3,16 +3,32 @@
  * @brief Funciones para obtener el uso de CPU y memoria desde el sistema de archivos /proc.
  */
 
+#include <cjson/cJSON.h>
 #include <dirent.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 /**
  * @brief Tamaño del buffer para leer archivos.
  */
+#define SMALL_BUFFER_SIZE 256
+
+/**
+ * @brief Tamaño del buffer para leer archivos.
+ */
 #define BUFFER_SIZE 1024
+
+/**
+ * @brief Ruta del json para leer datos de memoria.
+ */
+#define JSON_PATH getenv("JSON_PATH")
 
 /**
  * @brief Estructura para almacenar los valores de memoria.
@@ -106,6 +122,19 @@ typedef struct
 } NetDevStats;
 
 /**
+ * @brief Estructura para almacenar los valores de fragmentación y tiempo de cada política de asignación.
+ */
+typedef struct
+{
+    double time_first_fit;
+    double fragmentation_first_fit;
+    double time_best_fit;
+    double fragmentation_best_fit;
+    double time_worst_fit;
+    double fragmentation_worst_fit;
+} EfficiencyValues;
+
+/**
  * @brief Obtiene los valores de memoria total, usada y disponible desde /proc/meminfo.
  *
  * Lee los valores de memoria total, usada y disponible desde /proc/meminfo y los
@@ -163,3 +192,24 @@ int get_running_processes();
  * @return Cantidad de cambios de contexto.
  */
 unsigned long long get_context_switches();
+
+/**
+ * @brief Obtiene la fragmentación de la memoria en términos de bloques libres (70%)
+ * y espacio libre (30%).
+ *
+ * Lee la cantidad de bloques libres y el espacio libre en el heap y calcula la
+ * fragmentación de la memoria.
+ *
+ * @return Fragmentación de la memoria.
+ */
+double get_memory_fragmentation();
+
+/**
+ * @brief Obtiene la frecuencia de las políticas de asignación de memoria.
+ *
+ * Lee la cantidad de operaciones de asignación de memoria para cada política
+ * de asignación y calcula la frecuencia de uso de cada una.
+ *
+ * @return Estructura MemoryPolicies con la frecuencia de las políticas de asignación.
+ */
+EfficiencyValues get_memory_policies();

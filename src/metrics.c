@@ -266,3 +266,130 @@ unsigned long long get_context_switches()
 
     return context_switches;
 }
+
+double get_memory_fragmentation()
+{
+    FILE* fp = fopen("/proc/meminfo", "r");
+    char buffer[SMALL_BUFFER_SIZE];
+    unsigned long long mem_free = 0;
+    unsigned long long mem_total = 0;
+    unsigned long long mem_available = 0;
+
+    if (fp == NULL)
+    {
+        perror("Error al abrir /proc/meminfo");
+        exit(EXIT_FAILURE);
+    }
+
+    // Leer el archivo línea por línea
+    while (fgets(buffer, sizeof(buffer), fp) != NULL)
+    {
+        // Buscar las líneas que contienen "MemTotal", "MemFree" y "MemAvailable"
+        if (strncmp(buffer, "MemTotal:", 9) == 0)
+        {
+            sscanf(buffer, "MemTotal: %llu kB", &mem_total);
+        }
+        else if (strncmp(buffer, "MemFree:", 8) == 0)
+        {
+            sscanf(buffer, "MemFree: %llu kB", &mem_free);
+        }
+        else if (strncmp(buffer, "MemAvailable:", 13) == 0)
+        {
+            sscanf(buffer, "MemAvailable: %llu kB", &mem_available);
+        }
+    }
+
+    fclose(fp);
+
+    if (mem_total == 0)
+    {
+        fprintf(stderr, "Error al leer la información de la memoria desde /proc/meminfo\n");
+        return -1.0;
+    }
+
+    // Calcular la fragmentación de memoria
+    double fragmentation = (double)(mem_available - mem_free) / mem_total;
+    // printf("Fragmentation: %f\n", fragmentation);
+    return fragmentation;
+}
+
+EfficiencyValues get_memory_policies()
+{
+    EfficiencyValues values = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+    // Abrir el archivo para lectura
+    FILE* file = fopen(JSON_PATH, "r");
+    if (file == NULL)
+    {
+        perror("Error al abrir el archivo");
+        return values;
+    }
+
+    // Leer el archivo completo
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char* file_content = (char*)malloc(file_size + 1);
+    if (file_content == NULL)
+    {
+        perror("Error al asignar memoria");
+        fclose(file);
+        return values;
+    }
+    fread(file_content, 1, file_size, file);
+    file_content[file_size] = '\0';
+    fclose(file);
+
+    // Parsear el contenido JSON
+    cJSON* json = cJSON_Parse(file_content);
+    if (json == NULL)
+    {
+        fprintf(stderr, "Error al parsear JSON: %s\n", cJSON_GetErrorPtr());
+        free(file_content);
+        return values;
+    }
+
+    // Leer los datos de cada política
+    cJSON* first_fit = cJSON_GetObjectItem(json, "FIRST_FIT");
+    if (first_fit != NULL)
+    {
+        cJSON* time = cJSON_GetObjectItem(first_fit, "time");
+        cJSON* fragmentation = cJSON_GetObjectItem(first_fit, "fragmentation");
+        if (cJSON_IsNumber(time) && cJSON_IsNumber(fragmentation))
+        {
+            values.time_first_fit = time->valuedouble;
+            values.fragmentation_first_fit = fragmentation->valuedouble;
+        }
+    }
+
+    cJSON* best_fit = cJSON_GetObjectItem(json, "BEST_FIT");
+    if (best_fit != NULL)
+    {
+        cJSON* time = cJSON_GetObjectItem(best_fit, "time");
+        cJSON* fragmentation = cJSON_GetObjectItem(best_fit, "fragmentation");
+        if (cJSON_IsNumber(time) && cJSON_IsNumber(fragmentation))
+        {
+            values.time_best_fit = time->valuedouble;
+            values.fragmentation_best_fit = fragmentation->valuedouble;
+        }
+    }
+
+    cJSON* worst_fit = cJSON_GetObjectItem(json, "WORST_FIT");
+    if (worst_fit != NULL)
+    {
+        cJSON* time = cJSON_GetObjectItem(worst_fit, "time");
+        cJSON* fragmentation = cJSON_GetObjectItem(worst_fit, "fragmentation");
+        if (cJSON_IsNumber(time) && cJSON_IsNumber(fragmentation))
+        {
+            values.time_worst_fit = time->valuedouble;
+            values.fragmentation_worst_fit = fragmentation->valuedouble;
+        }
+    }
+
+    // Clean up
+    cJSON_Delete(json);
+    free(file_content);
+
+    return values;
+}

@@ -7,6 +7,7 @@ project (metrics VERSION 1.0.0 DESCRIPTION "A monitoring system" LANGUAGES C)
 # Flags for compiling
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_FLAGS_DEBUG "-g -O0 -Wall -Wpedantic -Wextra -Wunused-parameter")
+# set(CMAKE_BUILD_TYPE Debug)
 
 # Include headers
 include_directories(include)

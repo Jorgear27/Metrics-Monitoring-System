@@ -63,3 +63,4 @@ build/
 
 # Specific
 CMakeUserPresets.json
+.pre-commit-config.yaml

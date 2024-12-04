@@ -4,11 +4,11 @@
  */
 
 #include "metrics.h"
-#include <stdbool.h>
 #include <errno.h>
 #include <prom.h>
 #include <promhttp.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 /**
  * @brief Actualiza la métrica de uso de CPU.
@@ -41,6 +41,16 @@ void update_processes_gauge();
 void update_context_switches_gauge();
 
 /**
+ * @brief Actualiza la métrica de fragmentación de memoria.
+ */
+void update_fragmentation_gauge();
+
+/**
+ * @brief Actualiza las métricas de políticas de asignación de memoria.
+ */
+void update_policies_gauge();
+
+/**
  * @brief Función del hilo para exponer las métricas vía HTTP en el puerto 8000.
  * @param arg Argumento no utilizado.
  * @return NULL
@@ -49,16 +59,19 @@ void* expose_metrics(void* arg);
 
 /**
  * @brief Inicializa las métricas y el mutex.
- * 
+ *
  * @param monitor_cpu_usage true si se debe monitorear el uso de CPU, false en caso contrario.
  * @param monitor_memory_usage true si se debe monitorear el uso de memoria, false en caso contrario.
  * @param monitor_disk true si se debe monitorear las estadisticas de disco, false en caso contrario.
  * @param monitor_network true si se debe monitorear las estadisticas de red, false en caso contrario.
- * @param monitor_processes_running true si se debe monitorear la cantidad de procesos en ejecución, false en caso contrario.
- * @param monitor_context_switches true si se debe monitorear la cantidad de cambios de contexto, false en caso contrario.
+ * @param monitor_processes_running true si se debe monitorear la cantidad de procesos en ejecución, false en caso
+ * contrario.
+ * @param monitor_context_switches true si se debe monitorear la cantidad de cambios de contexto, false en caso
+ * contrario.
  */
-void init_metrics(bool monitor_cpu_usage, bool monitor_memory_usage, bool monitor_disk, 
-                  bool monitor_network, bool monitor_processes_running, bool monitor_context_switches);
+void init_metrics(bool monitor_cpu_usage, bool monitor_memory_usage, bool monitor_disk, bool monitor_network,
+                  bool monitor_processes_running, bool monitor_context_switches, bool monitor_fragmentation,
+                  bool monitor_policies);
 
 /**
  * @brief Destructor de mutex
