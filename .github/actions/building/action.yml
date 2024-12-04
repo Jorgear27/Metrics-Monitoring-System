@@ -45,7 +45,8 @@ runs:
         source venv/bin/activate
         pip install conan
         conan profile detect --force
-        mkdir -p build
+        mkdir build
+        conan install . --output-folder=build --build=missing
         cd build
         cmake .. -DCMAKE_TOOLCHAIN_FILE=./build/Release/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
         make -j$(nproc)
