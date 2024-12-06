@@ -105,15 +105,13 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    printf("Configuration loaded\n");
     // Initialize mutex and metrics
     init_metrics(monitor_cpu_usage, monitor_memory_usage, monitor_disk, monitor_network, monitor_processes_running,
                  monitor_context_switches, monitor_fragmentation, monitor_policies);
-    printf("Metrics initialized\n");
+
     // Main loop to update metrics
     while (true)
     {
-        printf("Updating metrics\n");
         if (monitor_cpu_usage)
             update_cpu_gauge();
         if (monitor_memory_usage)
